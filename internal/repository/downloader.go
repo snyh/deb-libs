@@ -18,7 +18,7 @@ func DownloadRepository(repoURL string, rf *ReleaseFile, targetDir string) (bool
 	for _, f := range rf.FileInfos() {
 		url := repoURL + "/dists/" + rf.CodeName + "/" + f.Path
 		target := path.Join(targetDir, rf.CodeName, "raw", f.Path)
-		if HashFile(target) == f.MD5 {
+		if hashFile(target) == f.MD5 {
 			continue
 		}
 		changed = true

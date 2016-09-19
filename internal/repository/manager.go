@@ -129,7 +129,7 @@ func (m *manager) getDB(arch Architecture) (PackageDB, error) {
 
 	if !ok {
 		var err error
-		DB, err = loadPackageDB(buildDBPath(m.dataDir, m.codeName, DBName(arch)))
+		DB, err = loadPackageDB(buildDBPath(m.dataDir, m.codeName, _DBName(arch)))
 		if err != nil {
 			return nil, err
 		}

@@ -22,7 +22,7 @@ type PackagesFileInfo struct {
 const DBIndexName = "index.dat"
 const ReleaseFileName = "Release"
 
-func DBName(arch Architecture) string { return string(arch) + ".dat" }
+func _DBName(arch Architecture) string { return string(arch) + ".dat" }
 
 type ReleaseFile struct {
 	Date          string
@@ -148,7 +148,7 @@ func (rf ReleaseFile) FileInfos() []PackagesFileInfo {
 	return r
 }
 
-func HashFile(fpath string) string {
+func hashFile(fpath string) string {
 	f, err := os.Open(fpath)
 	if err != nil {
 		return ""

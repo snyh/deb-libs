@@ -69,7 +69,7 @@ func BuildCache(rf *ReleaseFile, rawDataDir string, targetDir string) error {
 			return nil
 		}
 		DBs[arch] = db
-		target := buildDBPath(targetDir, rf.CodeName, DBName(arch))
+		target := buildDBPath(targetDir, rf.CodeName, _DBName(arch))
 		DBIndex[arch] = target
 	}
 
