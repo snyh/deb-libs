@@ -21,7 +21,7 @@ func (*testWrap) TestBuildCache(c *C.C) {
 	targetDir := "testdata/packages"
 	codeName := "unstable"
 
-	m, err := newManager("testdata", "http://pools.corp.deepin.com/deepin/", codeName)
+	m, err := NewManager("testdata", "http://pools.corp.deepin.com/deepin/", codeName)
 	c.Check(err, C.Equals, nil)
 	err = m.UpdateDB()
 	c.Check(err, C.Equals, nil)

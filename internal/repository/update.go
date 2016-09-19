@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-func (m *manager) Online() bool {
+func (m *Manager) Online() bool {
 	return m.index != nil
 }
 
-func (m *manager) DataHash() string {
+func (m *Manager) DataHash() string {
 	rf, err := GetReleaseFile(m.dataDir, m.codeName)
 	if err != nil {
 		return ""
@@ -19,7 +19,7 @@ func (m *manager) DataHash() string {
 	return rf.Hash()
 }
 
-func (m *manager) loadIndex(targetDir string) error {
+func (m *Manager) loadIndex(targetDir string) error {
 	index, err := loadPackagesaDBIndex(buildDBPath(targetDir, m.codeName, DBIndexName))
 	if err != nil {
 		return fmt.Errorf("UpdateDB: failed load db index: %v", err)
@@ -33,7 +33,7 @@ func updateServerCacheDate() {
 	_ServerCacheDate = time.Now().UTC().Format(time.UnixDate)
 }
 
-func (m *manager) UpdateDB() error {
+func (m *Manager) UpdateDB() error {
 	// always trying load index file at the end, no matter the result.
 	defer m.loadIndex(m.dataDir)
 

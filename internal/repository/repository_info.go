@@ -14,7 +14,7 @@ type Repository struct {
 	ServerCacheDate    string               `json:"server_cache_date"`
 }
 
-func (m *manager) RepositoryInfo() (*Repository, error) {
+func (m *Manager) RepositoryInfo() (*Repository, error) {
 	if !m.Online() {
 		return nil, fmt.Errorf("system offline")
 	}

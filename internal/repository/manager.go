@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-type manager struct {
+type Manager struct {
 	dataDir  string
 	codeName string
 	index    *PackageDBIndex
@@ -23,11 +23,11 @@ func init() {
 	updateServerCacheDate()
 }
 
-func NewManager(baseDataDir string, repoURL string, codeName string) (*manager, error) {
+func NewManager(baseDataDir string, repoURL string, codeName string) (*Manager, error) {
 	if repoURL == "" || baseDataDir == "" || codeName == "" {
 		return nil, fmt.Errorf("Please setup packages.newManager")
 	}
-	m := &manager{
+	m := &Manager{
 		dataDir:  path.Join(baseDataDir, DataDirectoryPrefix),
 		codeName: codeName,
 		dbs:      make(map[Architecture]PackageDB),
@@ -37,16 +37,7 @@ func NewManager(baseDataDir string, repoURL string, codeName string) (*manager, 
 	return m, nil
 }
 
-func sortMapString(d map[string]struct{}) []string {
-	var r = make([]string, 0)
-	for k := range d {
-		r = append(r, k)
-	}
-	sort.Strings(r)
-	return r
-}
-
-func (m *manager) Search(q string) []string {
+func (m *Manager) Search(q string) []string {
 	if !m.Online() {
 		return make([]string, 0)
 	}
@@ -62,7 +53,7 @@ func (m *manager) Search(q string) []string {
 	return sortMapString(r)
 }
 
-func (m *manager) QueryPath(id string, arch Architecture) (string, bool) {
+func (m *Manager) QueryPath(id string, arch Architecture) (string, bool) {
 	if !m.Online() {
 		return "", false
 	}
@@ -98,7 +89,7 @@ func normalizeArchitectures(archs []Architecture) []Architecture {
 	}
 	return r
 }
-func (m *manager) Get(id string) (Type, bool) {
+func (m *Manager) Get(id string) (Type, bool) {
 	if !m.Online() {
 		return Type{}, false
 	}
@@ -119,7 +110,7 @@ func (m *manager) Get(id string) (Type, bool) {
 	return Type{}, false
 }
 
-func (m *manager) getDB(arch Architecture) (PackageDB, error) {
+func (m *Manager) getDB(arch Architecture) (PackageDB, error) {
 	// If we don't lock this, the loadPackageDB maybe invoked too many times
 	// to cause memory exploded.
 	m.dbLock.Lock()
@@ -136,4 +127,13 @@ func (m *manager) getDB(arch Architecture) (PackageDB, error) {
 		m.dbs[arch] = DB
 	}
 	return DB, nil
+}
+
+func sortMapString(d map[string]struct{}) []string {
+	var r = make([]string, 0)
+	for k := range d {
+		r = append(r, k)
+	}
+	sort.Strings(r)
+	return r
 }
