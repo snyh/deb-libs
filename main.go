@@ -1,11 +1,23 @@
 package main
 
-import "./internal/repository"
-import "fmt"
-import "encoding/json"
+import (
+    "./internal/repository"
+    "fmt"
+    //"encoding/json"
+    "flag"
+)
 
 func main() {
-	m, err := packages.NewManager("test_out", "http://pools.corp.deepin.com/deepin", "unstable")
+    flag.Parse()
+    s := flag.Args()
+    if len(s) < 1 {
+        fmt.Println("E: not enough arg")
+        return
+    }
+
+    //m, err := packages.NewManager("test_out", "http://pools.corp.deepin.com/deepin", "unstable")
+    m, err := packages.NewManager("test_out", "http://10.0.0.10", "unstable")
+	//m, err := packages.NewManager("test_out", "http://packages.deepin.test", "mydist")
 	if err != nil {
 		fmt.Println("E:", err)
 		return
@@ -29,16 +41,21 @@ func main() {
 	// 	Homepage      string         `json:"homepage"`
 	// }
 
-	for _, id := range m.Search("deepin") {
+	for _, id := range m.Search(s[0]) {
 		if d, ok := m.Get(id); ok {
 			fmt.Println("------------------Name:", d.Package, "---------------")
 			fmt.Println("Version:", d.Version)
 			fmt.Println("DESC:", d.Description)
+			fmt.Println("Files:")
+            for _, f := range d.Files {
+                fmt.Printf(" %s\n", f)
+            }
 
 			fmt.Println("\n\n")
 		}
 	}
 
+    /*
 	rf, err := packages.GetReleaseFile("test_out/packages", "unstable")
 	if err != nil {
 		fmt.Println("E:", err)
@@ -55,4 +72,5 @@ func main() {
 	fmt.Println("Release File\n")
 	d, _ := json.Marshal(rf)
 	fmt.Printf("%q\n", string(d))
+    */
 }

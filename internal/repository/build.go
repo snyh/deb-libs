@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"compress/bzip2"
 	"fmt"
 	"os"
 	"path"
@@ -59,7 +60,7 @@ func BuildCache(rf *ReleaseFile, rawDataDir string, targetDir string) error {
 	DBSources := make(map[Architecture][]string)
 	DBIndex := make(map[Architecture]string)
 	DBs := make(map[Architecture]PackageDB)
-	for _, f := range rf.FileInfos() {
+	for _, f := range rf.PackagesFileInfos() {
 		source := path.Join(rawDataDir, rf.CodeName, "raw", f.Path)
 		DBSources[f.Architecture] = append(DBSources[f.Architecture], source)
 	}
@@ -71,6 +72,24 @@ func BuildCache(rf *ReleaseFile, rawDataDir string, targetDir string) error {
 		DBs[arch] = db
 		target := buildDBPath(targetDir, rf.CodeName, _DBName(arch))
 		DBIndex[arch] = target
+	}
+
+    // add package files
+	contentsDBSources := make(map[Architecture][]string)
+	for _, f := range rf.ContentsFileInfos() {
+		source := path.Join(rawDataDir, rf.CodeName, "raw", f.Path)
+		contentsDBSources[f.Architecture] = append(contentsDBSources[f.Architecture], source)
+	}
+	for arch, sources := range contentsDBSources {
+		data, err := parsePackageFiles(sources)
+		if err != nil {
+			return nil
+		}
+        for name, files := range data {
+            packageType := DBs[arch][name]
+            packageType.Files = append(packageType.Files, files...)
+            DBs[arch][name] = packageType
+        }
 	}
 
 	// 2. build index.dat
@@ -111,10 +130,12 @@ func createPackageIndex(dbsPath map[Architecture]string, dbs map[Architecture]Pa
 func createPackageDB(sourcePaths []string) (PackageDB, error) {
 	r := make(map[string]Type)
 	for _, source := range sourcePaths {
+        fmt.Printf("I: start scanning %s\n", source)
 		datas, err := parsePackageDBComponent(source)
 		if err != nil {
 			return nil, err
 		}
+        fmt.Printf("I: finish scanning %s\n", source)
 		for _, t := range datas {
 			r[t.Package] = t
 		}
@@ -176,4 +197,61 @@ func parsePackageDBComponent(path string) ([]Type, error) {
 		ts = append(ts, *t)
 	}
 	return ts, nil
+}
+
+type PackageFiles []string
+
+func parsePackageFiles(sourcePaths []string) (map[string]PackageFiles, error) {
+    r := make(map[string]PackageFiles)
+    for _, source := range sourcePaths {
+        fmt.Printf("I: start scanning %s\n", source)
+        datas, err := parseContents(source)
+		if err != nil {
+			return nil, err
+		}
+        fmt.Printf("I: finish scanning %s\n", source)
+		for name, files := range datas {
+			r[name] = files
+		}
+    }
+	return r, nil
+}
+
+func parseContents(path string) (map[string]PackageFiles, error) {
+    packageFiles := make(map[string]PackageFiles)
+	f, err := os.Open(path)
+	if err != nil {
+        return nil, fmt.Errorf("E: Can't open :%v", err)
+	}
+	defer f.Close()
+
+    var s *bufio.Scanner
+	if strings.HasSuffix(strings.ToLower(path), ".gz") {
+		gr, err := gzip.NewReader(f)
+		if err != nil {
+			return nil, fmt.Errorf("can't parse gzip file %q fallback to plain text.\n", path)
+		}
+		defer gr.Close()
+		s = bufio.NewScanner(gr)
+    } else if strings.HasSuffix(strings.ToLower(path), ".bz2") {
+		br := bzip2.NewReader(f)
+		s = bufio.NewScanner(br)
+	} else {
+		s = bufio.NewScanner(f)
+	}
+
+    type Files []string
+    for s.Scan() {
+        l := strings.Fields(s.Text())
+        file := l[0]
+        pkgPart := l[len(l) - 1]
+        if file == "FILE" && pkgPart == "LOCATION" {
+            continue
+        }
+        pkgParts := strings.Split(pkgPart, "/")
+        pkgName := pkgParts[len(pkgParts) - 1]
+        packageFiles[pkgName] = append(packageFiles[pkgName], file)
+    }
+
+    return packageFiles, nil
 }
