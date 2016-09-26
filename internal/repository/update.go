@@ -52,6 +52,7 @@ func (m *Manager) UpdateDB() error {
 
 	h := m.DataHash()
 	if h == rf.Hash() {
+	//if false {
 		//log.Debugf("DataHash %q is same as upstream.\n", h)
 		changed, err := DownloadRepository(m.repoURL, rf, m.dataDir)
 		if err != nil {

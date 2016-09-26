@@ -11,10 +11,11 @@ import (
 	"strings"
 )
 
-type PackagesFileInfo struct {
+type FileInfo struct {
 	Size         uint64
 	Path         string
 	Gzip         bool
+	Bzip2        bool
 	MD5          string
 	Architecture Architecture
 }
@@ -30,7 +31,7 @@ type ReleaseFile struct {
 	Description   string
 	Components    []string
 	Architectures []Architecture
-	fileInfos     []PackagesFileInfo
+	fileInfos     []FileInfo
 }
 
 // GetReleaseFile load ReleaseFile from dataDir with codeName
@@ -66,7 +67,7 @@ func NewReleaseFile(r io.Reader) (*ReleaseFile, error) {
 	rf.Date = dsc.GetString("date")
 	rf.Components = dsc.GetArrayString("components")
 
-	var ps []PackagesFileInfo
+	var ps []FileInfo
 	for _, v := range dsc.GetMultiline("md5sum") {
 		fs := strings.Split(strings.TrimSpace(v), " ")
 		if len(fs) != 3 {
@@ -77,10 +78,11 @@ func NewReleaseFile(r io.Reader) (*ReleaseFile, error) {
 			continue
 		}
 
-		ps = append(ps, PackagesFileInfo{
+		ps = append(ps, FileInfo{
 			Size: uint64(size),
 			Path: fs[2],
 			Gzip: strings.HasSuffix(fs[2], ".gz"),
+			Bzip2: strings.HasSuffix(fs[2], ".bz2"),
 			MD5:  fs[0],
 		})
 	}
@@ -103,20 +105,58 @@ func (rf ReleaseFile) Hash() string {
 	return fmt.Sprintf("%x", md5.Sum(data))
 }
 
-type PackagesFileInfos []PackagesFileInfo
+type FileInfos []FileInfo
 
-func (infos PackagesFileInfos) Len() int {
+func (infos FileInfos) Len() int {
 	return len(infos)
 }
-func (infos PackagesFileInfos) Less(i, j int) bool {
+func (infos FileInfos) Less(i, j int) bool {
 	return infos[i].Path < infos[j].Path
 }
-func (infos PackagesFileInfos) Swap(i, j int) {
+func (infos FileInfos) Swap(i, j int) {
 	infos[i], infos[j] = infos[j], infos[i]
 }
 
-func (rf ReleaseFile) FileInfos() []PackagesFileInfo {
-	var set = make(map[string]PackagesFileInfo)
+func (rf ReleaseFile) FileInfos() []FileInfo {
+    return append(rf.PackagesFileInfos(), rf.ContentsFileInfos()...)
+}
+
+func (rf ReleaseFile) ContentsFileInfos() []FileInfo {
+	var set = make(map[string]FileInfo)
+	for _, arch := range rf.Architectures {
+		for _, component := range rf.Components {
+			raw := component + "/Contents-" + string(arch)
+			zip := raw + ".bz2"
+			for _, f := range rf.fileInfos {
+				if f.Path != raw && f.Path != zip {
+					continue
+				}
+				_, ok := set[raw]
+				if !ok {
+					//store it if there hasn't content
+					f.Architecture = arch
+					set[raw] = f
+				}
+				if f.Bzip2 {
+					//overwrite if it support bzip2
+					f.Architecture = arch
+					set[raw] = f
+				}
+			}
+		}
+	}
+
+	var r = make(FileInfos, 0)
+	for _, f := range set {
+		r = append(r, f)
+	}
+	sort.Sort(r)
+	return r
+}
+
+
+func (rf ReleaseFile) PackagesFileInfos() []FileInfo {
+	var set = make(map[string]FileInfo)
 	for _, arch := range rf.Architectures {
 		for _, component := range rf.Components {
 			raw := component + "/binary-" + string(arch) + "/Packages"
@@ -140,7 +180,7 @@ func (rf ReleaseFile) FileInfos() []PackagesFileInfo {
 		}
 	}
 
-	var r = make(PackagesFileInfos, 0)
+	var r = make(FileInfos, 0)
 	for _, f := range set {
 		r = append(r, f)
 	}

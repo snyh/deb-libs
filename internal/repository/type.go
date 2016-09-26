@@ -16,6 +16,7 @@ type Type struct {
 	Filename      string         `json:"filename"`
 	Tag           string         `json:"tag"`
 	Homepage      string         `json:"homepage"`
+    Files         []string       `json:"files"`
 }
 
 func buildType(r io.Reader) (*Type, error) {
