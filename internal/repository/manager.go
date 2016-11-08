@@ -37,6 +37,21 @@ func NewManager(baseDataDir string, repoURL string, codeName string) (*Manager, 
 	return m, nil
 }
 
+func (m *Manager) SearchByFn(fn func(Type) bool, arch Architecture) []string {
+	db, err := m.getDB(arch)
+	if err != nil {
+		panic("There hasn't architecutre " + string(arch) + err.Error())
+	}
+
+	var r []string
+	for id, info := range db {
+		if fn(info) {
+			r = append(r, id)
+		}
+	}
+	return r
+}
+
 func (m *Manager) Search(q string) []string {
 	if !m.Online() {
 		return make([]string, 0)

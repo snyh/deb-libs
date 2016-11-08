@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 )
 
 type Type struct {
@@ -16,7 +17,13 @@ type Type struct {
 	Filename      string         `json:"filename"`
 	Tag           string         `json:"tag"`
 	Homepage      string         `json:"homepage"`
-    Files         []string       `json:"files"`
+	Files         []string       `json:"files"`
+	Depends       []string       `json:"depends"`
+}
+
+func (t Type) MatchAny(q string) bool {
+	s := fmt.Sprintln(t)
+	return strings.Contains(strings.ToLower(s), strings.ToLower(q))
 }
 
 func buildType(r io.Reader) (*Type, error) {
@@ -34,6 +41,7 @@ func buildType(r io.Reader) (*Type, error) {
 	for _, arch := range dsc.GetArrayString("architecture") {
 		t.Architectures = append(t.Architectures, Architecture(arch))
 	}
+	t.Depends = dsc.GetArrayString("depends")
 	t.Description = dsc.GetString("description")
 	t.Filename = dsc.GetString("filename")
 	t.Tag = dsc.GetString("tag")
